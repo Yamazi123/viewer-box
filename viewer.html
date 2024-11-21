@@ -24,6 +24,7 @@
             text-align: center;
             font-size: 1.25em;
             color: white;
+            padding: 20px;
         }
 
         #placeButton {
@@ -39,23 +40,40 @@
             font-size: 16px;
             z-index: 9999;
         }
+
+        #reloadButton {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            z-index: 9999;
+            display: none;
+        }
     </style>
 </head>
 <body style="margin: 0; overflow: hidden;">
     <div class="arjs-loader">
-        <div>Loading AR experience... Please allow camera access.</div>
+        <div>Initializing camera...</div>
     </div>
 
-    <button id="placeButton">Place Box</button>
+    <button id="placeButton" style="display: none;">Place Box</button>
+    <button id="reloadButton" onclick="location.reload()">Retry Camera Access</button>
 
     <a-scene
         vr-mode-ui="enabled: false"
         embedded
-        arjs='sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;'>
+        arjs='sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;'
+        renderer="antialias: true; alpha: true">
 
-        <!-- Custom box material -->
-        <a-assets>
-            <a-mixin id="box-material"
+        <a-entity id="boxContainer" visible="false">
+            <a-box id="arBox"
+                position="0 0 0"
                 material="opacity: 0.5; 
                          color: #7B89D3; 
                          metalness: 0.2; 
@@ -63,29 +81,29 @@
                          transparent: true;
                          shader: standard;
                          side: double">
-            </a-mixin>
-        </a-assets>
-
-        <!-- Box with edges -->
-        <a-entity id="boxContainer" visible="false">
-            <!-- Main transparent box -->
-            <a-box id="arBox"
-                position="0 0 0"
-                mixin="box-material">
             </a-box>
             
-            <!-- Edge lines -->
             <a-entity id="edges" line="color: white; opacity: 1"></a-entity>
         </a-entity>
-
-        <!-- Lighting -->
-        <a-light type="ambient" color="#FFF" intensity="0.8"></a-light>
-        <a-light type="directional" color="#FFF" intensity="0.8" position="1 1 1"></a-light>
 
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
+        // Handle camera permission explicitly
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(function(stream) {
+                stream.getTracks().forEach(track => track.stop());
+                document.querySelector('.arjs-loader').style.display = 'none';
+                document.getElementById('placeButton').style.display = 'block';
+            })
+            .catch(function(err) {
+                console.error('Camera error:', err);
+                document.querySelector('.arjs-loader div').innerHTML = 
+                    'Camera access denied. Please allow camera access and click Retry.';
+                document.getElementById('reloadButton').style.display = 'block';
+            });
+
         AFRAME.registerComponent('line', {
             schema: {
                 color: {default: '#fff'},
@@ -102,7 +120,6 @@
                     linewidth: 2
                 });
 
-                // Create edges geometry
                 const geometry = new THREE.EdgesGeometry(
                     new THREE.BoxGeometry(scale.x, scale.y, scale.z)
                 );
@@ -139,11 +156,6 @@
             
             box.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
             edges.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-
-            const scene = document.querySelector('a-scene');
-            scene.addEventListener('loaded', function () {
-                document.querySelector('.arjs-loader').style.display = 'none';
-            });
 
             let isPlaced = false;
             document.getElementById('placeButton').addEventListener('click', function() {
