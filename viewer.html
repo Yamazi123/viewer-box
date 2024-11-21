@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR Box Viewer</title>
-    <!-- Import A-Frame and AR.js -->
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
     <style>
@@ -43,42 +42,83 @@
     </style>
 </head>
 <body style="margin: 0; overflow: hidden;">
-    <!-- Loading screen -->
     <div class="arjs-loader">
         <div>Loading AR experience... Please allow camera access.</div>
     </div>
 
-    <!-- Place button -->
     <button id="placeButton">Place Box</button>
 
-    <!-- A-Frame scene -->
     <a-scene
         vr-mode-ui="enabled: false"
         embedded
         arjs='sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;'>
 
-        <!-- Create a box entity -->
-        <a-box
-            id="arBox"
-            position="0 0 0"
-            material="opacity: 0.7; color: #4CC3D9;"
-            visible="false">
-        </a-box>
+        <!-- Custom box material -->
+        <a-assets>
+            <a-mixin id="box-material"
+                material="opacity: 0.5; 
+                         color: #7B89D3; 
+                         metalness: 0.2; 
+                         roughness: 0.3;
+                         transparent: true;
+                         shader: standard;
+                         side: double">
+            </a-mixin>
+        </a-assets>
 
-        <!-- Camera -->
+        <!-- Box with edges -->
+        <a-entity id="boxContainer" visible="false">
+            <!-- Main transparent box -->
+            <a-box id="arBox"
+                position="0 0 0"
+                mixin="box-material">
+            </a-box>
+            
+            <!-- Edge lines -->
+            <a-entity id="edges" line="color: white; opacity: 1"></a-entity>
+        </a-entity>
+
+        <!-- Lighting -->
+        <a-light type="ambient" color="#FFF" intensity="0.8"></a-light>
+        <a-light type="directional" color="#FFF" intensity="0.8" position="1 1 1"></a-light>
+
         <a-entity camera></a-entity>
     </a-scene>
 
     <script>
+        AFRAME.registerComponent('line', {
+            schema: {
+                color: {default: '#fff'},
+                opacity: {default: 1}
+            },
+
+            init: function() {
+                const box = document.getElementById('arBox');
+                const scale = box.getAttribute('scale');
+                const material = new THREE.LineBasicMaterial({
+                    color: this.data.color,
+                    opacity: this.data.opacity,
+                    transparent: true,
+                    linewidth: 2
+                });
+
+                // Create edges geometry
+                const geometry = new THREE.EdgesGeometry(
+                    new THREE.BoxGeometry(scale.x, scale.y, scale.z)
+                );
+                
+                const line = new THREE.LineSegments(geometry, material);
+                this.el.setObject3D('mesh', line);
+            }
+        });
+
         window.onload = function() {
-            // Get URL parameters
             const params = new URLSearchParams(window.location.search);
             const length = parseFloat(params.get('length')) || 1;
             const width = parseFloat(params.get('width')) || 1;
             const height = parseFloat(params.get('height')) || 1;
             const unit = params.get('unit') || 'm';
 
-            // Convert dimensions to meters
             const conversions = {
                 'm': 1,
                 'cm': 0.01,
@@ -87,44 +127,41 @@
                 'ft': 0.3048
             };
 
-            // Get the box element
-            const box = document.getElementById('arBox');
-            
-            // Set box dimensions
             const scale = {
                 x: length * conversions[unit],
                 y: height * conversions[unit],
                 z: width * conversions[unit]
             };
+
+            const box = document.getElementById('arBox');
+            const boxContainer = document.getElementById('boxContainer');
+            const edges = document.getElementById('edges');
             
             box.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
+            edges.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
 
-            // Remove loader when camera is ready
             const scene = document.querySelector('a-scene');
             scene.addEventListener('loaded', function () {
                 document.querySelector('.arjs-loader').style.display = 'none';
             });
 
-            // Handle place button click
             let isPlaced = false;
             document.getElementById('placeButton').addEventListener('click', function() {
                 if (!isPlaced) {
-                    // Get camera position and rotation
                     const camera = document.querySelector('[camera]');
                     const position = camera.getAttribute('position');
                     const rotation = camera.getAttribute('rotation');
 
-                    // Place box 2 meters in front of camera
-                    box.setAttribute('position', {
+                    boxContainer.setAttribute('position', {
                         x: position.x - Math.sin(rotation.y * Math.PI / 180) * 2,
                         y: position.y,
                         z: position.z - Math.cos(rotation.y * Math.PI / 180) * 2
                     });
-                    box.setAttribute('visible', true);
+                    boxContainer.setAttribute('visible', true);
                     isPlaced = true;
                     this.textContent = 'Reset Position';
                 } else {
-                    box.setAttribute('visible', false);
+                    boxContainer.setAttribute('visible', false);
                     isPlaced = false;
                     this.textContent = 'Place Box';
                 }
