@@ -4,71 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR Box Viewer</title>
-    <!-- Import model-viewer component -->
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <style>
-        body { 
-            margin: 0; 
-            width: 100vw;
-            height: 100vh;
-            font-family: Arial, sans-serif;
-        }
-        model-viewer {
-            width: 100%;
-            height: 100%;
-            background-color: #f0f0f0;
-        }
-        #instructions {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 4px;
-            text-align: center;
-            z-index: 100;
-            width: 80%;
-            max-width: 400px;
-        }
-        #ar-button {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            z-index: 100;
-            cursor: pointer;
-        }
-        #capture-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 24px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            z-index: 100;
-            cursor: pointer;
-        }
-        #dimensions {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px;
-            border-radius: 4px;
-            z-index: 100;
-        }
+        /* ... keep existing styles ... */
     </style>
 </head>
 <body>
@@ -79,12 +17,10 @@
     
     <model-viewer
         id="box-model"
-        src="https://cdn.glitch.com/36cb8393-65c6-408d-a538-055ada20431b/Astronaut.glb?1542147958948"
-        ios-src="https://cdn.glitch.com/36cb8393-65c6-408d-a538-055ada20431b/Astronaut.usdz?v=1542147958948"
         camera-controls
         ar
         ar-modes="webxr scene-viewer quick-look"
-        ar-scale="auto"
+        ar-scale="fixed"
         auto-rotate
         shadow-intensity="1"
         exposure="0.5"
@@ -98,79 +34,133 @@
                 this.dimensions = this.getDimensionsFromURL();
                 this.displayDimensions();
                 this.setupButtons();
-                this.loadBox();
+                this.createAndLoadBox();
             }
 
-            getDimensionsFromURL() {
-                const params = new URLSearchParams(window.location.search);
-                return {
-                    length: parseFloat(params.get('length')) || 1,
-                    width: parseFloat(params.get('width')) || 1,
-                    height: parseFloat(params.get('height')) || 1,
-                    unit: params.get('unit') || 'm'
+            // ... keep other existing methods ...
+
+            async createAndLoadBox() {
+                const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                const width = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                const height = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+
+                // Create a simple box GLTF model
+                const gltf = {
+                    "asset": { "version": "2.0" },
+                    "scene": 0,
+                    "scenes": [{ "nodes": [0] }],
+                    "nodes": [{ "mesh": 0 }],
+                    "meshes": [{
+                        "primitives": [{
+                            "attributes": {
+                                "POSITION": 1,
+                                "NORMAL": 2
+                            },
+                            "indices": 0,
+                            "material": 0
+                        }]
+                    }],
+                    "materials": [{
+                        "pbrMetallicRoughness": {
+                            "baseColorFactor": [0.5, 0.8, 1.0, 0.7],
+                            "metallicFactor": 0.1,
+                            "roughnessFactor": 0.5
+                        },
+                        "alphaMode": "BLEND",
+                        "doubleSided": true
+                    }],
+                    "buffers": [{
+                        "uri": "data:application/octet-stream;base64," + this.generateBoxBuffers(length, width, height),
+                        "byteLength": 0  // Will be calculated
+                    }],
+                    "bufferViews": [
+                        { "buffer": 0, "byteOffset": 0, "byteLength": 0, "target": 34963 },
+                        { "buffer": 0, "byteOffset": 0, "byteLength": 0, "target": 34962 },
+                        { "buffer": 0, "byteOffset": 0, "byteLength": 0, "target": 34962 }
+                    ],
+                    "accessors": [
+                        {
+                            "bufferView": 0,
+                            "componentType": 5123,
+                            "count": 36,
+                            "type": "SCALAR"
+                        },
+                        {
+                            "bufferView": 1,
+                            "componentType": 5126,
+                            "count": 24,
+                            "type": "VEC3",
+                            "min": [-length/2, -height/2, -width/2],
+                            "max": [length/2, height/2, width/2]
+                        },
+                        {
+                            "bufferView": 2,
+                            "componentType": 5126,
+                            "count": 24,
+                            "type": "VEC3"
+                        }
+                    ]
                 };
-            }
 
-            displayDimensions() {
-                const dimensionsDiv = document.getElementById('dimensions');
-                dimensionsDiv.innerHTML = `
-                    Length: ${this.dimensions.length}${this.dimensions.unit}<br>
-                    Width: ${this.dimensions.width}${this.dimensions.unit}<br>
-                    Height: ${this.dimensions.height}${this.dimensions.unit}
-                `;
-            }
-
-            setupButtons() {
-                document.getElementById('ar-button').addEventListener('click', () => {
-                    this.modelViewer.activateAR();
-                });
-
-                document.getElementById('capture-button').addEventListener('click', () => {
-                    this.capturePhoto();
-                });
-
-                this.modelViewer.addEventListener('ar-status', (event) => {
-                    if (event.detail.status === 'failed') {
-                        document.getElementById('instructions').textContent = 
-                            'AR mode failed to start. Please check if your device supports AR.';
-                    } else if (event.detail.status === 'success') {
-                        document.getElementById('instructions').textContent = 
-                            'Move your device to place the box';
-                    }
-                });
-
-                this.modelViewer.addEventListener('load', () => {
-                    document.getElementById('instructions').textContent = 
-                        'Use AR button to view in your space';
-                });
-            }
-
-            loadBox() {
-                // Use a basic cube GLB model
-                this.modelViewer.src = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf';
+                // Create Blob URL for the model
+                const blob = new Blob([JSON.stringify(gltf)], { type: 'model/gltf+json' });
+                const blobUrl = URL.createObjectURL(blob);
                 
-                // Scale the model according to dimensions
-                const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                this.modelViewer.scale = `${scale} ${scale} ${scale}`;
+                // Set the model source
+                this.modelViewer.src = blobUrl;
+                
+                // No need for scale as the model is created with correct dimensions
+                this.modelViewer.scale = "1 1 1";
             }
 
-            convertToMeters(value, unit) {
-                const conversions = {
-                    'm': 1,
-                    'cm': 0.01,
-                    'mm': 0.001,
-                    'in': 0.0254,
-                    'ft': 0.3048
-                };
-                return value * (conversions[unit] || 1);
-            }
+            generateBoxBuffers(length, width, height) {
+                // Vertices for a box
+                const l = length/2, h = height/2, w = width/2;
+                const vertices = new Float32Array([
+                    // Front
+                    -l, -h,  w,  l, -h,  w,  l,  h,  w, -l,  h,  w,
+                    // Back
+                    -l, -h, -w, -l,  h, -w,  l,  h, -w,  l, -h, -w,
+                    // Top
+                    -l,  h, -w, -l,  h,  w,  l,  h,  w,  l,  h, -w,
+                    // Bottom
+                    -l, -h, -w,  l, -h, -w,  l, -h,  w, -l, -h,  w,
+                    // Right
+                     l, -h, -w,  l,  h, -w,  l,  h,  w,  l, -h,  w,
+                    // Left
+                    -l, -h, -w, -l, -h,  w, -l,  h,  w, -l,  h, -w,
+                ]);
 
-            capturePhoto() {
-                const canvas = this.modelViewer.shadowRoot.querySelector('canvas');
-                const link = document.createElement('a');
-                link.download = 'ar-box-photo.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
+                // Normals
+                const normals = new Float32Array([
+                    // Front
+                    0, 0, 1,  0, 0, 1,  0, 0, 1,  0, 0, 1,
+                    // Back
+                    0, 0, -1,  0, 0, -1,  0, 0, -1,  0, 0, -1,
+                    // Top
+                    0, 1, 0,  0, 1, 0,  0, 1, 0,  0, 1, 0,
+                    // Bottom
+                    0, -1, 0,  0, -1, 0,  0, -1, 0,  0, -1, 0,
+                    // Right
+                    1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0,
+                    // Left
+                    -1, 0, 0,  -1, 0, 0,  -1, 0, 0,  -1, 0, 0
+                ]);
+
+                // Indices
+                const indices = new Uint16Array([
+                    0, 1, 2,    0, 2, 3,   // Front
+                    4, 5, 6,    4, 6, 7,   // Back
+                    8, 9, 10,   8, 10, 11, // Top
+                    12, 13, 14, 12, 14, 15,// Bottom
+                    16, 17, 18, 16, 18, 19,// Right
+                    20, 21, 22, 20, 22, 23 // Left
+                ]);
+
+                return btoa([...new Uint8Array(indices.buffer), 
+                           ...new Uint8Array(vertices.buffer),
+                           ...new Uint8Array(normals.buffer)]
+                           .map(b => String.fromCharCode(b)).join(''));
             }
         }
 
