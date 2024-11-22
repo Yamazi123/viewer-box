@@ -96,7 +96,7 @@
     </model-viewer>
 
     <script>
-        class ARBoxViewer {
+       class ARBoxViewer {
             constructor() {
                 this.modelViewer = document.querySelector('#box-model');
                 this.dimensions = this.getDimensionsFromURL();
@@ -150,12 +150,18 @@
             }
 
             loadBox() {
-                // Use a basic cube GLB model
-                this.modelViewer.src = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf';
+                // Create a custom box GLB URL based on dimensions
+                const boxUrl = `https://modelviewer.dev/shared-assets/models/box.glb`;
+                this.modelViewer.src = boxUrl;
+                this.modelViewer.ios-src = boxUrl;
                 
                 // Scale the model according to dimensions
-                const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                this.modelViewer.scale = `${scale} ${scale} ${scale}`;
+                const scaleX = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                const scaleY = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                const scaleZ = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                
+                // Apply the scale to match input dimensions
+                this.modelViewer.scale = `${scaleX} ${scaleY} ${scaleZ}`;
             }
 
             convertToMeters(value, unit) {
