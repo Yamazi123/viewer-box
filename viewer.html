@@ -77,11 +77,10 @@
     <button id="ar-button">View in AR</button>
     <button id="capture-button">Take Photo</button>
     
-    
     <model-viewer
         id="box-model"
-        src="https://modelviewer.dev/shared-assets/models/box.glb"
-        ios-src="https://modelviewer.dev/shared-assets/models/box.glb"
+        src="https://cdn.glitch.com/36cb8393-65c6-408d-a538-055ada20431b/Astronaut.glb?1542147958948"
+        ios-src="https://cdn.glitch.com/36cb8393-65c6-408d-a538-055ada20431b/Astronaut.usdz?v=1542147958948"
         camera-controls
         ar
         ar-modes="webxr scene-viewer quick-look"
@@ -147,18 +146,12 @@
             }
 
             loadBox() {
-                // Create a custom box GLB URL based on dimensions
-                const boxUrl = `https://modelviewer.dev/shared-assets/models/box.glb`;
-                this.modelViewer.src = boxUrl;
-                this.modelViewer.ios-src = boxUrl;
+                // Use a basic cube GLB model
+                this.modelViewer.src = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf';
                 
                 // Scale the model according to dimensions
-                const scaleX = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
-                const scaleY = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                const scaleZ = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                
-                // Apply the scale to match input dimensions
-                this.modelViewer.scale = `${scaleX} ${scaleY} ${scaleZ}`;
+                const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                this.modelViewer.scale = `${scale} ${scale} ${scale}`;
             }
 
             convertToMeters(value, unit) {
