@@ -4,30 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR Box Viewer</title>
-    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        .arjs-loader {
-            position: fixed;
-            z-index: 999;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .arjs-loader div {
-            text-align: center;
-            font-size: 1.25em;
-            color: white;
-            padding: 20px;
-        }
-
-        #placeButton {
+        body { margin: 0; }
+        #arButton {
             position: fixed;
             bottom: 20px;
             left: 50%;
@@ -38,147 +18,149 @@
             border: none;
             border-radius: 4px;
             font-size: 16px;
-            z-index: 9999;
+            z-index: 100;
         }
-
-        #reloadButton {
+        #instructions {
             position: fixed;
-            top: 50%;
+            top: 20px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            padding: 12px 24px;
-            background: #007bff;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
             color: white;
-            border: none;
+            padding: 10px 20px;
             border-radius: 4px;
-            font-size: 16px;
-            z-index: 9999;
-            display: none;
+            text-align: center;
+            z-index: 100;
         }
     </style>
 </head>
-<body style="margin: 0; overflow: hidden;">
-    <div class="arjs-loader">
-        <div>Initializing camera...</div>
-    </div>
-
-    <button id="placeButton" style="display: none;">Place Box</button>
-    <button id="reloadButton" onclick="location.reload()">Retry Camera Access</button>
-
-    <a-scene
-        vr-mode-ui="enabled: false"
-        embedded
-        arjs='sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;'
-        renderer="antialias: true; alpha: true">
-
-        <a-entity id="boxContainer" visible="false">
-            <a-box id="arBox"
-                position="0 0 0"
-                material="opacity: 0.5; 
-                         color: #7B89D3; 
-                         metalness: 0.2; 
-                         roughness: 0.3;
-                         transparent: true;
-                         shader: standard;
-                         side: double">
-            </a-box>
-            
-            <a-entity id="edges" line="color: white; opacity: 1"></a-entity>
-        </a-entity>
-
-        <a-entity camera></a-entity>
-    </a-scene>
-
+<body>
+    <div id="instructions">Point at a surface to place the box</div>
+    <button id="arButton">Start AR</button>
     <script>
-        // Handle camera permission explicitly
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(function(stream) {
-                stream.getTracks().forEach(track => track.stop());
-                document.querySelector('.arjs-loader').style.display = 'none';
-                document.getElementById('placeButton').style.display = 'block';
-            })
-            .catch(function(err) {
-                console.error('Camera error:', err);
-                document.querySelector('.arjs-loader div').innerHTML = 
-                    'Camera access denied. Please allow camera access and click Retry.';
-                document.getElementById('reloadButton').style.display = 'block';
-            });
-
-        AFRAME.registerComponent('line', {
-            schema: {
-                color: {default: '#fff'},
-                opacity: {default: 1}
-            },
-
-            init: function() {
-                const box = document.getElementById('arBox');
-                const scale = box.getAttribute('scale');
-                const material = new THREE.LineBasicMaterial({
-                    color: this.data.color,
-                    opacity: this.data.opacity,
-                    transparent: true,
-                    linewidth: 2
-                });
-
-                const geometry = new THREE.EdgesGeometry(
-                    new THREE.BoxGeometry(scale.x, scale.y, scale.z)
-                );
+        class ARBoxViewer {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
                 
-                const line = new THREE.LineSegments(geometry, material);
-                this.el.setObject3D('mesh', line);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.xr.enabled = true;
+                document.body.appendChild(this.renderer.domElement);
+
+                // Get dimensions from URL
+                const params = new URLSearchParams(window.location.search);
+                this.dimensions = {
+                    length: parseFloat(params.get('length')) || 1,
+                    width: parseFloat(params.get('width')) || 1,
+                    height: parseFloat(params.get('height')) || 1,
+                    unit: params.get('unit') || 'm'
+                };
+
+                this.createBox();
+                this.setupLights();
+                this.setupAR();
             }
-        });
 
-        window.onload = function() {
-            const params = new URLSearchParams(window.location.search);
-            const length = parseFloat(params.get('length')) || 1;
-            const width = parseFloat(params.get('width')) || 1;
-            const height = parseFloat(params.get('height')) || 1;
-            const unit = params.get('unit') || 'm';
+            createBox() {
+                const scale = this.convertToMeters(this.dimensions);
+                
+                // Create box geometry
+                const geometry = new THREE.BoxGeometry(scale.length, scale.height, scale.width);
+                const material = new THREE.MeshPhongMaterial({
+                    color: 0x7B89D3,
+                    transparent: true,
+                    opacity: 0.5,
+                });
+                
+                this.box = new THREE.Mesh(geometry, material);
+                
+                // Add wireframe
+                const edges = new THREE.EdgesGeometry(geometry);
+                const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+                const wireframe = new THREE.LineSegments(edges, lineMaterial);
+                this.box.add(wireframe);
+            }
 
-            const conversions = {
-                'm': 1,
-                'cm': 0.01,
-                'mm': 0.001,
-                'in': 0.0254,
-                'ft': 0.3048
-            };
+            convertToMeters({ length, width, height, unit }) {
+                const conversions = {
+                    'm': 1,
+                    'cm': 0.01,
+                    'mm': 0.001,
+                    'in': 0.0254,
+                    'ft': 0.3048
+                };
+                const factor = conversions[unit] || 1;
+                return {
+                    length: length * factor,
+                    width: width * factor,
+                    height: height * factor
+                };
+            }
 
-            const scale = {
-                x: length * conversions[unit],
-                y: height * conversions[unit],
-                z: width * conversions[unit]
-            };
+            setupLights() {
+                const light = new THREE.DirectionalLight(0xffffff, 1);
+                light.position.set(1, 1, 1);
+                this.scene.add(light);
+                
+                const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+                this.scene.add(ambient);
+            }
 
-            const box = document.getElementById('arBox');
-            const boxContainer = document.getElementById('boxContainer');
-            const edges = document.getElementById('edges');
-            
-            box.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-            edges.setAttribute('scale', `${scale.x} ${scale.y} ${scale.z}`);
-
-            let isPlaced = false;
-            document.getElementById('placeButton').addEventListener('click', function() {
-                if (!isPlaced) {
-                    const camera = document.querySelector('[camera]');
-                    const position = camera.getAttribute('position');
-                    const rotation = camera.getAttribute('rotation');
-
-                    boxContainer.setAttribute('position', {
-                        x: position.x - Math.sin(rotation.y * Math.PI / 180) * 2,
-                        y: position.y,
-                        z: position.z - Math.cos(rotation.y * Math.PI / 180) * 2
-                    });
-                    boxContainer.setAttribute('visible', true);
-                    isPlaced = true;
-                    this.textContent = 'Reset Position';
+            async setupAR() {
+                const arButton = document.getElementById('arButton');
+                
+                if ('xr' in navigator) {
+                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
+                    if (supported) {
+                        arButton.addEventListener('click', () => this.startAR());
+                    } else {
+                        arButton.textContent = 'AR Not Supported';
+                        arButton.disabled = true;
+                    }
                 } else {
-                    boxContainer.setAttribute('visible', false);
-                    isPlaced = false;
-                    this.textContent = 'Place Box';
+                    arButton.textContent = 'AR Not Supported';
+                    arButton.disabled = true;
                 }
-            });
-        };
+            }
+
+            async startAR() {
+                try {
+                    const session = await navigator.xr.requestSession('immersive-ar', {
+                        requiredFeatures: ['hit-test']
+                    });
+
+                    this.renderer.xr.setSession(session);
+                    
+                    const viewerSpace = await session.requestReferenceSpace('viewer');
+                    const hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+
+                    session.addEventListener('select', () => {
+                        if (this.hitPose) {
+                            this.box.position.setFromMatrixPosition(this.hitPose.transform.matrix);
+                            this.scene.add(this.box);
+                        }
+                    });
+
+                    this.renderer.setAnimationLoop((timestamp, frame) => {
+                        if (frame) {
+                            const hitTestResults = frame.getHitTestResults(hitTestSource);
+                            if (hitTestResults.length > 0) {
+                                this.hitPose = hitTestResults[0].getPose(viewerSpace);
+                            }
+                        }
+                        this.renderer.render(this.scene, this.camera);
+                    });
+
+                } catch (error) {
+                    console.error('Error starting AR:', error);
+                    alert('Failed to start AR: ' + error.message);
+                }
+            }
+        }
+
+        // Start the application
+        new ARBoxViewer();
     </script>
 </body>
 </html>
