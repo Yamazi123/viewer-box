@@ -196,9 +196,6 @@
             }
 
             loadShape(shapeType) {
-                const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                
-                // Updated paths to simple, working 3D models
                 const shapes = {
                     box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
                     table: 'https://cdn.glitch.me/36cb8393-65c6-408d-a538-055ada20431b/ShoppingBag.glb',
@@ -206,41 +203,34 @@
                     lamp: 'https://cdn.glitch.me/36cb8393-65c6-408d-a538-055ada20431b/Cube.glb'
                 };
 
-                // Set the model source
                 this.modelViewer.src = shapes[shapeType] || shapes.box;
+
+                // Convert dimensions to meters
+                const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                const width = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                const height = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
 
                 // Adjust scale and orientation based on shape type
                 switch(shapeType) {
                     case 'table':
-                        // Table dimensions
-                        const tableLength = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                        const tableWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
-                        const tableHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${tableLength} ${tableHeight/4} ${tableWidth}`; // Height divided by 4 for table top
+                        // Table dimensions - width and height first, then length
+                        this.modelViewer.scale = `${width} ${height/4} ${length}`; // Height divided by 4 for table top
                         break;
                         
                     case 'frame':
-                        // Frame dimensions (thin depth)
-                        const frameWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
-                        const frameHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${frameWidth} ${frameHeight} 0.05`; // 5cm depth
+                        // Frame dimensions - width and height first, then thin depth
+                        this.modelViewer.scale = `${width} ${height} 0.05`; // 5cm depth
                         break;
                         
                     case 'lamp':
-                        // Lamp dimensions (cylindrical shape)
-                        const lampDiameter = Math.min(
-                            this.convertToMeters(this.dimensions.width, this.dimensions.unit),
-                            this.convertToMeters(this.dimensions.length, this.dimensions.unit)
-                        );
-                        const lampHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${lampDiameter} ${lampHeight} ${lampDiameter}`;
+                        // Lamp dimensions - width for diameter, height, then same width
+                        const lampDiameter = Math.min(width, length);
+                        this.modelViewer.scale = `${width} ${height} ${width}`;
                         break;
                         
                     default: // box
-                        const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                        const width = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
-                        const height = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${length} ${height} ${width}`;
+                        // Box dimensions - width and height first, then length
+                        this.modelViewer.scale = `${width} ${height} ${length}`;
                 }
 
                 // Add loading state handling
