@@ -150,9 +150,9 @@
             displayDimensions() {
                 const dimensionsDiv = document.getElementById('dimensions');
                 dimensionsDiv.innerHTML = `
-                    Height: ${this.dimensions.height}${this.dimensions.unit}<br>
+                    Length: ${this.dimensions.length}${this.dimensions.unit}<br>
                     Width: ${this.dimensions.width}${this.dimensions.unit}<br>
-                    Length: ${this.dimensions.length}${this.dimensions.unit}
+                    Height: ${this.dimensions.height}${this.dimensions.unit}
                 `;
             }
 
@@ -196,7 +196,7 @@
             }
 
             loadShape(shapeType) {
-                const scale = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                 
                 // Updated paths to simple, working 3D models
                 const shapes = {
@@ -209,48 +209,39 @@
                 // Set the model source
                 this.modelViewer.src = shapes[shapeType] || shapes.box;
 
-                // Add camera settings to focus on height and width
-                this.modelViewer.cameraOrbit = "0deg 90deg 105%";
-                this.modelViewer.fieldOfView = "45deg";
-                this.modelViewer.minCameraOrbit = "auto auto 50%";
-                this.modelViewer.maxCameraOrbit = "auto auto 150%";
-
                 // Adjust scale and orientation based on shape type
                 switch(shapeType) {
                     case 'table':
+                        // Table dimensions
+                        const tableLength = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                         const tableWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
                         const tableHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        const tableLength = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                        this.modelViewer.scale = `${tableWidth} ${tableHeight} ${tableLength}`;
+                        this.modelViewer.scale = `${tableLength} ${tableHeight/4} ${tableWidth}`; // Height divided by 4 for table top
                         break;
                         
                     case 'frame':
+                        // Frame dimensions (thin depth)
                         const frameWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
                         const frameHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${frameWidth} ${frameHeight} 0.05`;
-                        this.modelViewer.orientation = "0deg 0deg 0deg";
+                        this.modelViewer.scale = `${frameWidth} ${frameHeight} 0.05`; // 5cm depth
                         break;
                         
                     case 'lamp':
-                        const lampWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                        // Lamp dimensions (cylindrical shape)
+                        const lampDiameter = Math.min(
+                            this.convertToMeters(this.dimensions.width, this.dimensions.unit),
+                            this.convertToMeters(this.dimensions.length, this.dimensions.unit)
+                        );
                         const lampHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${lampWidth} ${lampHeight} ${lampWidth}`;
+                        this.modelViewer.scale = `${lampDiameter} ${lampHeight} ${lampDiameter}`;
                         break;
                         
                     default: // box
+                        const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                         const width = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
                         const height = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                        this.modelViewer.scale = `${width} ${height} ${length}`;
+                        this.modelViewer.scale = `${length} ${height} ${width}`;
                 }
-
-                // Add model placement settings for AR
-                this.modelViewer.setAttribute('ar-placement', 'wall');
-                this.modelViewer.setAttribute('ar-scale', 'fixed');
-                this.modelViewer.setAttribute('interaction-prompt', 'none');
-                
-                // Update the dimensions display to prioritize height and width
-                this.displayDimensions();
 
                 // Add loading state handling
                 document.getElementById('instructions').textContent = 'Loading shape...';
