@@ -104,9 +104,11 @@
     
     <div id="shape-selector">
         <button class="shape-button active" data-shape="box">Box</button>
-        <button class="shape-button" data-shape="sphere">Sphere</button>
-        <button class="shape-button" data-shape="cylinder">Cylinder</button>
-        <button class="shape-button" data-shape="pyramid">Pyramid</button>
+        <button class="shape-button" data-shape="table">Table</button>
+        <button class="shape-button" data-shape="chair">Chair</button>
+        <button class="shape-button" data-shape="sofa">Sofa</button>
+        <button class="shape-button" data-shape="cabinet">Cabinet</button>
+        <button class="shape-button" data-shape="bed">Bed</button>
     </div>
 
     <button id="ar-button">View in AR</button>
@@ -198,52 +200,75 @@
             loadShape(shapeType) {
                 const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                 
-                // Updated paths to actual working 3D models
+                // Updated paths to practical 3D models
                 const shapes = {
+                    // Basic shapes
                     box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
-                    sphere: 'https://modelviewer.dev/shared-assets/models/sphere.glb',
-                    cylinder: 'https://modelviewer.dev/shared-assets/models/cylinder.glb',
-                    pyramid: 'https://modelviewer.dev/shared-assets/models/pyramid.glb'
+                    // Furniture models
+                    table: 'https://modelviewer.dev/shared-assets/models/table.glb',
+                    chair: 'https://modelviewer.dev/shared-assets/models/chair.glb',
+                    sofa: 'https://modelviewer.dev/shared-assets/models/sofa.glb',
+                    cabinet: 'https://modelviewer.dev/shared-assets/models/cabinet.glb',
+                    bed: 'https://modelviewer.dev/shared-assets/models/bed.glb'
                 };
+
+                // Update shape selector buttons in HTML
+                const shapeSelector = document.getElementById('shape-selector');
+                shapeSelector.innerHTML = `
+                    <button class="shape-button active" data-shape="box">Box</button>
+                    <button class="shape-button" data-shape="table">Table</button>
+                    <button class="shape-button" data-shape="chair">Chair</button>
+                    <button class="shape-button" data-shape="sofa">Sofa</button>
+                    <button class="shape-button" data-shape="cabinet">Cabinet</button>
+                    <button class="shape-button" data-shape="bed">Bed</button>
+                `;
 
                 // Set the model source
                 this.modelViewer.src = shapes[shapeType] || shapes.box;
 
                 // Adjust scale based on shape type
                 switch(shapeType) {
-                    case 'sphere':
-                        // For sphere, use the smallest dimension to maintain proportions
-                        const sphereScale = Math.min(
-                            this.convertToMeters(this.dimensions.length, this.dimensions.unit),
-                            this.convertToMeters(this.dimensions.width, this.dimensions.unit),
-                            this.convertToMeters(this.dimensions.height, this.dimensions.unit)
-                        );
-                        this.modelViewer.scale = `${sphereScale} ${sphereScale} ${sphereScale}`;
+                    case 'table':
+                        const tableLength = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                        const tableWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                        const tableHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        this.modelViewer.scale = `${tableLength} ${tableHeight} ${tableWidth}`;
                         break;
                         
-                    case 'cylinder':
-                        const radius = Math.min(
-                            this.convertToMeters(this.dimensions.length, this.dimensions.unit),
-                            this.convertToMeters(this.dimensions.width, this.dimensions.unit)
-                        ) / 2;
-                        const cylinderHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${radius} ${cylinderHeight} ${radius}`;
+                    case 'chair':
+                        const chairScale = this.convertToMeters(Math.min(
+                            this.dimensions.width,
+                            this.dimensions.length
+                        ), this.dimensions.unit);
+                        this.modelViewer.scale = `${chairScale} ${chairScale} ${chairScale}`;
                         break;
                         
-                    case 'pyramid':
-                        const baseSize = Math.max(
-                            this.convertToMeters(this.dimensions.length, this.dimensions.unit),
-                            this.convertToMeters(this.dimensions.width, this.dimensions.unit)
-                        );
-                        const pyramidHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${baseSize} ${pyramidHeight} ${baseSize}`;
+                    case 'sofa':
+                        const sofaLength = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                        const sofaHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        const sofaDepth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                        this.modelViewer.scale = `${sofaLength} ${sofaHeight} ${sofaDepth}`;
+                        break;
+                        
+                    case 'cabinet':
+                        const cabinetWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                        const cabinetHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        const cabinetDepth = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                        this.modelViewer.scale = `${cabinetWidth} ${cabinetHeight} ${cabinetDepth}`;
+                        break;
+                        
+                    case 'bed':
+                        const bedLength = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                        const bedWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                        const bedHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        this.modelViewer.scale = `${bedLength} ${bedHeight} ${bedWidth}`;
                         break;
                         
                     default: // box
                         const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                         const width = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
-                        const boxHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${length} ${boxHeight} ${width}`;
+                        const height = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        this.modelViewer.scale = `${length} ${height} ${width}`;
                 }
 
                 // Add loading state handling
