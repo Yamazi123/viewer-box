@@ -105,10 +105,8 @@
     <div id="shape-selector">
         <button class="shape-button active" data-shape="box">Box</button>
         <button class="shape-button" data-shape="table">Table</button>
-        <button class="shape-button" data-shape="chair">Chair</button>
-        <button class="shape-button" data-shape="sofa">Sofa</button>
-        <button class="shape-button" data-shape="cabinet">Cabinet</button>
-        <button class="shape-button" data-shape="bed">Bed</button>
+        <button class="shape-button" data-shape="frame">Wall Frame</button>
+        <button class="shape-button" data-shape="lamp">Ceiling Lamp</button>
     </div>
 
     <button id="ar-button">View in AR</button>
@@ -200,45 +198,25 @@
             loadShape(shapeType) {
                 const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                 
-                // Updated paths to working 3D models from Google's Model Viewer samples
+                // Updated paths to working 3D models
                 const shapes = {
                     box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
-                    table: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Furniture_Table_01.glb',
-                    chair: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Chair.glb',
-                    sofa: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Sofa_01.glb',
-                    cabinet: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Cabinet_01.glb',
-                    bed: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Bed_01.glb'
+                    table: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Table/glTF/Table.gltf',
+                    frame: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/PictureFrame/glTF/PictureFrame.gltf',
+                    lamp: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CeilingLight/glTF/CeilingLight.gltf'
                 };
 
                 // For iOS support
                 const iosSources = {
                     box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.usdz',
-                    table: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Furniture_Table_01.usdz',
-                    chair: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Chair.usdz',
-                    sofa: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Sofa_01.usdz',
-                    cabinet: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Cabinet_01.usdz',
-                    bed: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Bed_01.usdz'
+                    table: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Table/glTF/Table.usdz',
+                    frame: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/PictureFrame/glTF/PictureFrame.usdz',
+                    lamp: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CeilingLight/glTF/CeilingLight.usdz'
                 };
 
                 // Set the model source and iOS source
                 this.modelViewer.src = shapes[shapeType] || shapes.box;
                 this.modelViewer.iosSrc = iosSources[shapeType] || iosSources.box;
-
-                // Update model-viewer attributes for better AR experience
-                this.modelViewer.setAttribute('ar', '');
-                this.modelViewer.setAttribute('ar-modes', 'webxr scene-viewer quick-look');
-                this.modelViewer.setAttribute('camera-controls', '');
-                this.modelViewer.setAttribute('auto-rotate', '');
-                this.modelViewer.setAttribute('shadow-intensity', '1');
-
-                // Add loading error handling with more detailed feedback
-                this.modelViewer.addEventListener('error', (error) => {
-                    console.error('Error loading model:', error);
-                    document.getElementById('instructions').textContent = 
-                        `Error loading ${shapeType}. Falling back to box... (${error.message})`;
-                    this.modelViewer.src = shapes.box;
-                    this.modelViewer.iosSrc = iosSources.box;
-                }, { once: true });
 
                 // Adjust scale based on shape type
                 switch(shapeType) {
@@ -249,33 +227,22 @@
                         this.modelViewer.scale = `${tableLength} ${tableHeight} ${tableWidth}`;
                         break;
                         
-                    case 'chair':
-                        const chairScale = this.convertToMeters(Math.min(
+                    case 'frame':
+                        const frameWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                        const frameHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        const frameDepth = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                        this.modelViewer.scale = `${frameWidth} ${frameHeight} ${frameDepth}`;
+                        // Rotate frame to face forward
+                        this.modelViewer.orientation = "0deg 0deg 0deg";
+                        break;
+                        
+                    case 'lamp':
+                        const lampScale = this.convertToMeters(Math.min(
                             this.dimensions.width,
                             this.dimensions.length
                         ), this.dimensions.unit);
-                        this.modelViewer.scale = `${chairScale} ${chairScale} ${chairScale}`;
-                        break;
-                        
-                    case 'sofa':
-                        const sofaLength = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                        const sofaHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        const sofaDepth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
-                        this.modelViewer.scale = `${sofaLength} ${sofaHeight} ${sofaDepth}`;
-                        break;
-                        
-                    case 'cabinet':
-                        const cabinetWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
-                        const cabinetHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        const cabinetDepth = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                        this.modelViewer.scale = `${cabinetWidth} ${cabinetHeight} ${cabinetDepth}`;
-                        break;
-                        
-                    case 'bed':
-                        const bedLength = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                        const bedWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
-                        const bedHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${bedLength} ${bedHeight} ${bedWidth}`;
+                        const lampHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        this.modelViewer.scale = `${lampScale} ${lampHeight} ${lampScale}`;
                         break;
                         
                     default: // box
@@ -289,6 +256,15 @@
                 document.getElementById('instructions').textContent = 'Loading shape...';
                 this.modelViewer.addEventListener('load', () => {
                     document.getElementById('instructions').textContent = 'Use AR button to view in your space';
+                }, { once: true });
+
+                // Add error handling
+                this.modelViewer.addEventListener('error', (error) => {
+                    console.error('Error loading model:', error);
+                    document.getElementById('instructions').textContent = 
+                        `Error loading ${shapeType}. Falling back to box... (${error.message})`;
+                    this.modelViewer.src = shapes.box;
+                    this.modelViewer.iosSrc = iosSources.box;
                 }, { once: true });
             }
 
