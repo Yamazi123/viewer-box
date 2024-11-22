@@ -200,34 +200,42 @@
             loadShape(shapeType) {
                 const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                 
-                // Updated paths to working 3D models
+                // Updated paths to working 3D models from Google's Model Viewer samples
                 const shapes = {
                     box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
-                    table: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/table-wood/model.gltf',
-                    chair: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/office-chair/model.gltf',
-                    sofa: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/sofa-1/model.gltf',
-                    cabinet: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/cabinet-2/model.gltf',
-                    bed: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/bed-1/model.gltf'
+                    table: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Furniture_Table_01.glb',
+                    chair: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Chair.glb',
+                    sofa: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Sofa_01.glb',
+                    cabinet: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Cabinet_01.glb',
+                    bed: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Bed_01.glb'
                 };
 
                 // For iOS support
                 const iosSources = {
                     box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.usdz',
-                    table: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/table-wood/model.usdz',
-                    chair: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/office-chair/model.usdz',
-                    sofa: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/sofa-1/model.usdz',
-                    cabinet: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/cabinet-2/model.usdz',
-                    bed: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/bed-1/model.usdz'
+                    table: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Furniture_Table_01.usdz',
+                    chair: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Chair.usdz',
+                    sofa: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Sofa_01.usdz',
+                    cabinet: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Cabinet_01.usdz',
+                    bed: 'https://cdn.glitch.global/36cb8393-65c6-408d-a538-055ada20431b/Bed_01.usdz'
                 };
 
                 // Set the model source and iOS source
                 this.modelViewer.src = shapes[shapeType] || shapes.box;
                 this.modelViewer.iosSrc = iosSources[shapeType] || iosSources.box;
 
-                // Add loading error handling
+                // Update model-viewer attributes for better AR experience
+                this.modelViewer.setAttribute('ar', '');
+                this.modelViewer.setAttribute('ar-modes', 'webxr scene-viewer quick-look');
+                this.modelViewer.setAttribute('camera-controls', '');
+                this.modelViewer.setAttribute('auto-rotate', '');
+                this.modelViewer.setAttribute('shadow-intensity', '1');
+
+                // Add loading error handling with more detailed feedback
                 this.modelViewer.addEventListener('error', (error) => {
                     console.error('Error loading model:', error);
-                    document.getElementById('instructions').textContent = 'Error loading model. Falling back to box...';
+                    document.getElementById('instructions').textContent = 
+                        `Error loading ${shapeType}. Falling back to box... (${error.message})`;
                     this.modelViewer.src = shapes.box;
                     this.modelViewer.iosSrc = iosSources.box;
                 }, { once: true });
