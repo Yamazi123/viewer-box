@@ -4,87 +4,91 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR Box Viewer</title>
-    <script type="module" src="https://unpkg.com/@google/model-viewer@1.12.0/dist/model-viewer.min.js"></script>
+    <!-- Import model-viewer component -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <style>
-        /* Keep existing styles */
+        body { 
+            margin: 0; 
+            width: 100vw;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            background-color: #f0f0f0;
+        }
+        #instructions {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-align: center;
+            z-index: 100;
+            width: 80%;
+            max-width: 400px;
+        }
+        #ar-button {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            z-index: 100;
+            cursor: pointer;
+        }
+        #capture-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            z-index: 100;
+            cursor: pointer;
+        }
+        #dimensions {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
-    <div id="instructions">Loading 3D Box...</div>
+    <div id="instructions">Loading 3D box...</div>
     <div id="dimensions"></div>
-    <div class="button-container">
-        <button id="ar-button">View in AR</button>
-        <button id="capture-button">Take Photo</button>
-    </div>
+    <button id="ar-button">View in AR</button>
+    <button id="capture-button">Take Photo</button>
     
     <model-viewer
         id="box-model"
-        src="data:model/gltf+json,{
-            'asset': { 'version': '2.0' },
-            'scene': 0,
-            'scenes': [{ 'nodes': [0] }],
-            'nodes': [{ 'mesh': 0 }],
-            'meshes': [{
-                'primitives': [{
-                    'attributes': {
-                        'POSITION': 0,
-                        'NORMAL': 1
-                    },
-                    'indices': 2,
-                    'material': 0
-                }]
-            }],
-            'materials': [{
-                'pbrMetallicRoughness': {
-                    'baseColorFactor': [0.5, 0.8, 1.0, 0.7],
-                    'metallicFactor': 0.1,
-                    'roughnessFactor': 0.5
-                },
-                'alphaMode': 'BLEND',
-                'doubleSided': true
-            }],
-            'accessors': [
-                {
-                    'bufferView': 0,
-                    'componentType': 5126,
-                    'count': 24,
-                    'type': 'VEC3',
-                    'min': [-0.5, -0.5, -0.5],
-                    'max': [0.5, 0.5, 0.5]
-                },
-                {
-                    'bufferView': 1,
-                    'componentType': 5126,
-                    'count': 24,
-                    'type': 'VEC3'
-                },
-                {
-                    'bufferView': 2,
-                    'componentType': 5123,
-                    'count': 36,
-                    'type': 'SCALAR'
-                }
-            ],
-            'bufferViews': [
-                { 'buffer': 0, 'byteOffset': 0, 'byteLength': 288 },
-                { 'buffer': 0, 'byteOffset': 288, 'byteLength': 288 },
-                { 'buffer': 0, 'byteOffset': 576, 'byteLength': 72 }
-            ],
-            'buffers': [{
-                'byteLength': 648,
-                'uri': 'data:application/octet-stream;base64,AAAAvwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAL8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAC/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIA/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAAAAAAIC/AAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgD8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAPwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAACAvwAAAAAAAAAAAAABAAIAAAACAAMABAAFAAYABAAGAAcACAAJAAoACAAKAAsADAANAA4ADAAOAA8AEAARABIAEAASABMAFAAVABYAFAAWABcA'
-            }]
-        }"
+        src="https://cdn.glitch.com/36cb8393-65c6-408d-a538-055ada20431b/Astronaut.glb?1542147958948"
+        ios-src="https://cdn.glitch.com/36cb8393-65c6-408d-a538-055ada20431b/Astronaut.usdz?v=1542147958948"
         camera-controls
         ar
-        ar-modes="scene-viewer quick-look webxr"
-        ar-scale="fixed"
+        ar-modes="webxr scene-viewer quick-look"
+        ar-scale="auto"
         auto-rotate
         shadow-intensity="1"
         exposure="0.5"
-        interaction-prompt="none"
-        touch-action="pan-y"
-        style="width: 100%; height: 100%;">
+        style="background-color: #f0f0f0;">
     </model-viewer>
 
     <script>
@@ -94,7 +98,7 @@
                 this.dimensions = this.getDimensionsFromURL();
                 this.displayDimensions();
                 this.setupButtons();
-                this.setupModelViewer();
+                this.loadBox();
             }
 
             getDimensionsFromURL() {
@@ -117,48 +121,37 @@
             }
 
             setupButtons() {
-                const arButton = document.getElementById('ar-button');
-                arButton.addEventListener('click', () => {
-                    try {
-                        this.modelViewer.activateAR();
-                    } catch (error) {
-                        console.error('AR activation error:', error);
-                        alert('AR activation failed. Please ensure you are using a compatible device and browser.');
-                    }
+                document.getElementById('ar-button').addEventListener('click', () => {
+                    this.modelViewer.activateAR();
                 });
 
                 document.getElementById('capture-button').addEventListener('click', () => {
                     this.capturePhoto();
                 });
-            }
-
-            setupModelViewer() {
-                const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                const width = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
-                const height = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                
-                this.modelViewer.addEventListener('load', () => {
-                    document.getElementById('instructions').textContent = 'Click "View in AR" to see in your space';
-                    this.modelViewer.scale = `${length} ${height} ${width}`;
-                    this.modelViewer.updateFraming();
-                });
 
                 this.modelViewer.addEventListener('ar-status', (event) => {
-                    const instructions = document.getElementById('instructions');
                     if (event.detail.status === 'failed') {
-                        instructions.textContent = 'AR mode failed. Please check if your device supports AR.';
+                        document.getElementById('instructions').textContent = 
+                            'AR mode failed to start. Please check if your device supports AR.';
                     } else if (event.detail.status === 'success') {
-                        instructions.textContent = 'Move your device to place the box';
-                    } else if (event.detail.status === 'not-presenting') {
-                        instructions.textContent = 'Click "View in AR" to see in your space';
+                        document.getElementById('instructions').textContent = 
+                            'Move your device to place the box';
                     }
                 });
 
-                this.modelViewer.addEventListener('error', (error) => {
-                    console.error('Model viewer error:', error);
+                this.modelViewer.addEventListener('load', () => {
                     document.getElementById('instructions').textContent = 
-                        'Error loading 3D model. Please try a different browser.';
+                        'Use AR button to view in your space';
                 });
+            }
+
+            loadBox() {
+                // Use a basic cube GLB model
+                this.modelViewer.src = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf';
+                
+                // Scale the model according to dimensions
+                const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                this.modelViewer.scale = `${scale} ${scale} ${scale}`;
             }
 
             convertToMeters(value, unit) {
@@ -173,27 +166,16 @@
             }
 
             capturePhoto() {
-                try {
-                    const canvas = this.modelViewer.shadowRoot.querySelector('canvas');
-                    if (canvas) {
-                        const link = document.createElement('a');
-                        link.download = 'ar-box-photo.png';
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                    } else {
-                        alert('Unable to capture photo at this time');
-                    }
-                } catch (error) {
-                    console.error('Photo capture error:', error);
-                    alert('Failed to capture photo');
-                }
+                const canvas = this.modelViewer.shadowRoot.querySelector('canvas');
+                const link = document.createElement('a');
+                link.download = 'ar-box-photo.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
             }
         }
 
-        // Start the application when the page is fully loaded
-        window.addEventListener('load', () => {
-            new ARBoxViewer();
-        });
+        // Start the application
+        new ARBoxViewer();
     </script>
 </body>
-</html>
+</html> 
