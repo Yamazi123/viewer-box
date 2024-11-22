@@ -4,21 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR Box Viewer</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Import model-viewer component -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <style>
-        body { margin: 0; }
-        #arButton {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            z-index: 100;
+        body { 
+            margin: 0; 
+            width: 100vw;
+            height: 100vh;
+        }
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            background-color: #f0f0f0;
         }
         #instructions {
             position: fixed;
@@ -37,123 +34,104 @@
     </style>
 </head>
 <body>
-    <div id="instructions">Checking AR compatibility...</div>
-    <button id="arButton" style="display: none;">Start AR</button>
+    <div id="instructions">Tap 'AR' button to view in your space</div>
+    <model-viewer
+        id="box-model"
+        camera-controls
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        ar-scale="auto"
+        auto-rotate>
+    </model-viewer>
+
     <script>
         class ARBoxViewer {
             constructor() {
-                this.checkDeviceCompatibility();
-                this.scene = new THREE.Scene();
-                this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
-                
-                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-                this.renderer.setSize(window.innerWidth, window.innerHeight);
-                this.renderer.xr.enabled = true;
-                document.body.appendChild(this.renderer.domElement);
+                this.modelViewer = document.querySelector('#box-model');
+                this.dimensions = this.getDimensionsFromURL();
+                this.createBox();
+            }
 
-                // Get dimensions from URL
+            getDimensionsFromURL() {
                 const params = new URLSearchParams(window.location.search);
-                this.dimensions = {
+                return {
                     length: parseFloat(params.get('length')) || 1,
                     width: parseFloat(params.get('width')) || 1,
                     height: parseFloat(params.get('height')) || 1,
                     unit: params.get('unit') || 'm'
                 };
-
-                this.createBox();
-                this.setupLights();
-                this.setupAR();
             }
 
-            async checkDeviceCompatibility() {
-                const instructions = document.getElementById('instructions');
+            convertToMeters(value, unit) {
+                const conversions = {
+                    'm': 1,
+                    'cm': 0.01,
+                    'mm': 0.001,
+                    'in': 0.0254,
+                    'ft': 0.3048
+                };
+                return value * (conversions[unit] || 1);
+            }
+
+            async createBox() {
+                const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                const width = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                const height = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+
+                // Create GLB data for a box with the specified dimensions
+                const glbData = await this.createBoxGLB(length, width, height);
                 
-                // Check if running on mobile
-                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                if (!isMobile) {
-                    instructions.textContent = 'Please open this page on a mobile device';
-                    return false;
-                }
+                // Create a blob URL for the GLB data
+                const blob = new Blob([glbData], { type: 'model/gltf-binary' });
+                const blobUrl = URL.createObjectURL(blob);
 
-                // Check if running on HTTPS
-                if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-                    instructions.textContent = 'AR requires HTTPS. Please use a secure connection.';
-                    return false;
-                }
-
-                // Check WebXR support
-                if (!navigator.xr) {
-                    instructions.textContent = 'WebXR not available. Please use Chrome on Android or Safari on iOS 13.3+';
-                    return false;
-                }
-
-                return true;
+                // Set the model source
+                this.modelViewer.src = blobUrl;
             }
 
-            // ... rest of the methods remain the same ...
+            async createBoxGLB(length, width, height) {
+                // Simple GLB file structure for a box
+                const vertices = new Float32Array([
+                    // Front face
+                    -length/2, -height/2,  width/2,
+                     length/2, -height/2,  width/2,
+                     length/2,  height/2,  width/2,
+                    -length/2,  height/2,  width/2,
+                    // Back face
+                    -length/2, -height/2, -width/2,
+                    -length/2,  height/2, -width/2,
+                     length/2,  height/2, -width/2,
+                     length/2, -height/2, -width/2,
+                    // Top face
+                    -length/2,  height/2, -width/2,
+                    -length/2,  height/2,  width/2,
+                     length/2,  height/2,  width/2,
+                     length/2,  height/2, -width/2,
+                    // Bottom face
+                    -length/2, -height/2, -width/2,
+                     length/2, -height/2, -width/2,
+                     length/2, -height/2,  width/2,
+                    -length/2, -height/2,  width/2,
+                    // Right face
+                     length/2, -height/2, -width/2,
+                     length/2,  height/2, -width/2,
+                     length/2,  height/2,  width/2,
+                     length/2, -height/2,  width/2,
+                    // Left face
+                    -length/2, -height/2, -width/2,
+                    -length/2, -height/2,  width/2,
+                    -length/2,  height/2,  width/2,
+                    -length/2,  height/2, -width/2,
+                ]);
 
-            async setupAR() {
-                const arButton = document.getElementById('arButton');
-                const instructions = document.getElementById('instructions');
-                
-                if ('xr' in navigator) {
-                    try {
-                        const supported = await navigator.xr.isSessionSupported('immersive-ar');
-                        if (supported) {
-                            instructions.textContent = 'Point at a surface to place the box';
-                            arButton.style.display = 'block';
-                            arButton.addEventListener('click', () => this.startAR());
-                        } else {
-                            instructions.textContent = 'AR not supported on this device/browser. Please use Chrome on Android or Safari on iOS 13.3+';
-                            arButton.style.display = 'none';
-                        }
-                    } catch (error) {
-                        instructions.textContent = 'Error checking AR support: ' + error.message;
-                        console.error('AR support check error:', error);
-                    }
-                } else {
-                    instructions.textContent = 'WebXR not available. Please use Chrome on Android or Safari on iOS 13.3+';
-                    arButton.style.display = 'none';
-                }
-            }
+                // Create a simple GLB buffer
+                const buffer = new ArrayBuffer(vertices.byteLength + 28);
+                new Uint32Array(buffer, 0, 1)[0] = 0x46546C67; // 'glTF' magic
+                new Uint32Array(buffer, 4, 1)[0] = 2; // version
+                new Uint32Array(buffer, 8, 1)[0] = buffer.byteLength; // total length
+                new Float32Array(buffer, 28).set(vertices);
 
-            async startAR() {
-                const instructions = document.getElementById('instructions');
-                try {
-                    instructions.textContent = 'Starting AR...';
-                    const session = await navigator.xr.requestSession('immersive-ar', {
-                        requiredFeatures: ['hit-test']
-                    });
-
-                    this.renderer.xr.setSession(session);
-                    
-                    const viewerSpace = await session.requestReferenceSpace('viewer');
-                    const hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
-
-                    instructions.textContent = 'Tap on the surface where you want to place the box';
-
-                    session.addEventListener('select', () => {
-                        if (this.hitPose) {
-                            this.box.position.setFromMatrixPosition(this.hitPose.transform.matrix);
-                            this.scene.add(this.box);
-                            instructions.textContent = 'Box placed! You can move around to view it';
-                        }
-                    });
-
-                    this.renderer.setAnimationLoop((timestamp, frame) => {
-                        if (frame) {
-                            const hitTestResults = frame.getHitTestResults(hitTestSource);
-                            if (hitTestResults.length > 0) {
-                                this.hitPose = hitTestResults[0].getPose(viewerSpace);
-                            }
-                        }
-                        this.renderer.render(this.scene, this.camera);
-                    });
-
-                } catch (error) {
-                    console.error('Error starting AR:', error);
-                    instructions.textContent = 'Failed to start AR: ' + error.message;
-                }
+                return buffer;
             }
         }
 
