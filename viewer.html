@@ -200,31 +200,37 @@
             loadShape(shapeType) {
                 const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                 
-                // Updated paths to practical 3D models
+                // Updated paths to working 3D models
                 const shapes = {
-                    // Basic shapes
                     box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
-                    // Furniture models
-                    table: 'https://modelviewer.dev/shared-assets/models/table.glb',
-                    chair: 'https://modelviewer.dev/shared-assets/models/chair.glb',
-                    sofa: 'https://modelviewer.dev/shared-assets/models/sofa.glb',
-                    cabinet: 'https://modelviewer.dev/shared-assets/models/cabinet.glb',
-                    bed: 'https://modelviewer.dev/shared-assets/models/bed.glb'
+                    table: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/table-wood/model.gltf',
+                    chair: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/office-chair/model.gltf',
+                    sofa: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/sofa-1/model.gltf',
+                    cabinet: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/cabinet-2/model.gltf',
+                    bed: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/bed-1/model.gltf'
                 };
 
-                // Update shape selector buttons in HTML
-                const shapeSelector = document.getElementById('shape-selector');
-                shapeSelector.innerHTML = `
-                    <button class="shape-button active" data-shape="box">Box</button>
-                    <button class="shape-button" data-shape="table">Table</button>
-                    <button class="shape-button" data-shape="chair">Chair</button>
-                    <button class="shape-button" data-shape="sofa">Sofa</button>
-                    <button class="shape-button" data-shape="cabinet">Cabinet</button>
-                    <button class="shape-button" data-shape="bed">Bed</button>
-                `;
+                // For iOS support
+                const iosSources = {
+                    box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.usdz',
+                    table: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/table-wood/model.usdz',
+                    chair: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/office-chair/model.usdz',
+                    sofa: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/sofa-1/model.usdz',
+                    cabinet: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/cabinet-2/model.usdz',
+                    bed: 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/bed-1/model.usdz'
+                };
 
-                // Set the model source
+                // Set the model source and iOS source
                 this.modelViewer.src = shapes[shapeType] || shapes.box;
+                this.modelViewer.iosSrc = iosSources[shapeType] || iosSources.box;
+
+                // Add loading error handling
+                this.modelViewer.addEventListener('error', (error) => {
+                    console.error('Error loading model:', error);
+                    document.getElementById('instructions').textContent = 'Error loading model. Falling back to box...';
+                    this.modelViewer.src = shapes.box;
+                    this.modelViewer.iosSrc = iosSources.box;
+                }, { once: true });
 
                 // Adjust scale based on shape type
                 switch(shapeType) {
