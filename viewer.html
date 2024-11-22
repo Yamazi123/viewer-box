@@ -31,15 +31,18 @@
             border-radius: 4px;
             text-align: center;
             z-index: 100;
+            width: 80%;
+            max-width: 400px;
         }
     </style>
 </head>
 <body>
-    <div id="instructions">Point at a surface to place the box</div>
-    <button id="arButton">Start AR</button>
+    <div id="instructions">Checking AR compatibility...</div>
+    <button id="arButton" style="display: none;">Start AR</button>
     <script>
         class ARBoxViewer {
             constructor() {
+                this.checkDeviceCompatibility();
                 this.scene = new THREE.Scene();
                 this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 20);
                 
@@ -62,70 +65,62 @@
                 this.setupAR();
             }
 
-            createBox() {
-                const scale = this.convertToMeters(this.dimensions);
+            async checkDeviceCompatibility() {
+                const instructions = document.getElementById('instructions');
                 
-                // Create box geometry
-                const geometry = new THREE.BoxGeometry(scale.length, scale.height, scale.width);
-                const material = new THREE.MeshPhongMaterial({
-                    color: 0x7B89D3,
-                    transparent: true,
-                    opacity: 0.5,
-                });
-                
-                this.box = new THREE.Mesh(geometry, material);
-                
-                // Add wireframe
-                const edges = new THREE.EdgesGeometry(geometry);
-                const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
-                const wireframe = new THREE.LineSegments(edges, lineMaterial);
-                this.box.add(wireframe);
+                // Check if running on mobile
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (!isMobile) {
+                    instructions.textContent = 'Please open this page on a mobile device';
+                    return false;
+                }
+
+                // Check if running on HTTPS
+                if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                    instructions.textContent = 'AR requires HTTPS. Please use a secure connection.';
+                    return false;
+                }
+
+                // Check WebXR support
+                if (!navigator.xr) {
+                    instructions.textContent = 'WebXR not available. Please use Chrome on Android or Safari on iOS 13.3+';
+                    return false;
+                }
+
+                return true;
             }
 
-            convertToMeters({ length, width, height, unit }) {
-                const conversions = {
-                    'm': 1,
-                    'cm': 0.01,
-                    'mm': 0.001,
-                    'in': 0.0254,
-                    'ft': 0.3048
-                };
-                const factor = conversions[unit] || 1;
-                return {
-                    length: length * factor,
-                    width: width * factor,
-                    height: height * factor
-                };
-            }
-
-            setupLights() {
-                const light = new THREE.DirectionalLight(0xffffff, 1);
-                light.position.set(1, 1, 1);
-                this.scene.add(light);
-                
-                const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-                this.scene.add(ambient);
-            }
+            // ... rest of the methods remain the same ...
 
             async setupAR() {
                 const arButton = document.getElementById('arButton');
+                const instructions = document.getElementById('instructions');
                 
                 if ('xr' in navigator) {
-                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
-                    if (supported) {
-                        arButton.addEventListener('click', () => this.startAR());
-                    } else {
-                        arButton.textContent = 'AR Not Supported';
-                        arButton.disabled = true;
+                    try {
+                        const supported = await navigator.xr.isSessionSupported('immersive-ar');
+                        if (supported) {
+                            instructions.textContent = 'Point at a surface to place the box';
+                            arButton.style.display = 'block';
+                            arButton.addEventListener('click', () => this.startAR());
+                        } else {
+                            instructions.textContent = 'AR not supported on this device/browser. Please use Chrome on Android or Safari on iOS 13.3+';
+                            arButton.style.display = 'none';
+                        }
+                    } catch (error) {
+                        instructions.textContent = 'Error checking AR support: ' + error.message;
+                        console.error('AR support check error:', error);
                     }
                 } else {
-                    arButton.textContent = 'AR Not Supported';
-                    arButton.disabled = true;
+                    instructions.textContent = 'WebXR not available. Please use Chrome on Android or Safari on iOS 13.3+';
+                    arButton.style.display = 'none';
                 }
             }
 
             async startAR() {
+                const instructions = document.getElementById('instructions');
                 try {
+                    instructions.textContent = 'Starting AR...';
                     const session = await navigator.xr.requestSession('immersive-ar', {
                         requiredFeatures: ['hit-test']
                     });
@@ -135,10 +130,13 @@
                     const viewerSpace = await session.requestReferenceSpace('viewer');
                     const hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
 
+                    instructions.textContent = 'Tap on the surface where you want to place the box';
+
                     session.addEventListener('select', () => {
                         if (this.hitPose) {
                             this.box.position.setFromMatrixPosition(this.hitPose.transform.matrix);
                             this.scene.add(this.box);
+                            instructions.textContent = 'Box placed! You can move around to view it';
                         }
                     });
 
@@ -154,7 +152,7 @@
 
                 } catch (error) {
                     console.error('Error starting AR:', error);
-                    alert('Failed to start AR: ' + error.message);
+                    instructions.textContent = 'Failed to start AR: ' + error.message;
                 }
             }
         }
