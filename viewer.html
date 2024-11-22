@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AR Box Viewer</title>
-    <!-- Import the latest model-viewer version -->
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+    <!-- Import model-viewer with specific version -->
+    <script type="module" src="https://unpkg.com/@google/model-viewer@1.12.0/dist/model-viewer.min.js"></script>
     <style>
         body { 
             margin: 0; 
@@ -14,64 +14,68 @@
             height: 100vh;
             font-family: Arial, sans-serif;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
         model-viewer {
             width: 100%;
             height: 100%;
             background-color: #f0f0f0;
             --poster-color: transparent;
+            --progress-bar-height: 20px;
+            --progress-bar-color: #007bff;
         }
         #instructions {
             position: fixed;
-            top: 40px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 15px 30px;
+            padding: 12px 20px;
             border-radius: 8px;
             text-align: center;
             z-index: 1000;
-            font-size: 18px;
+            font-size: 16px;
             width: 80%;
-            max-width: 400px;
+            max-width: 300px;
         }
         #dimensions {
             position: fixed;
-            bottom: 100px;
+            bottom: 80px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.8);
             color: white;
-            padding: 15px 30px;
+            padding: 12px 20px;
             border-radius: 8px;
             z-index: 1000;
-            font-size: 18px;
+            font-size: 16px;
             text-align: center;
         }
-        button {
+        .button-container {
             position: fixed;
-            bottom: 30px;
-            padding: 15px 30px;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 0 20px;
+            z-index: 1000;
+        }
+        button {
+            padding: 12px 24px;
             background: #007bff;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 18px;
-            z-index: 1000;
+            font-size: 16px;
             cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        button:active {
-            transform: translateY(1px);
-        }
-        #ar-button {
-            left: 50%;
-            transform: translateX(-50%);
-            background: #007bff;
+            min-width: 120px;
         }
         #capture-button {
-            right: 20px;
             background: #4CAF50;
         }
     </style>
@@ -79,21 +83,28 @@
 <body>
     <div id="instructions">Loading 3D Box...</div>
     <div id="dimensions"></div>
-    <button id="ar-button">View in AR</button>
-    <button id="capture-button">Take Photo</button>
+    <div class="button-container">
+        <button id="ar-button">View in AR</button>
+        <button id="capture-button">Take Photo</button>
+    </div>
     
     <model-viewer
         id="box-model"
-        src="https://storage.googleapis.com/model-viewer/samples/Box.gltf"
-        ios-src="https://storage.googleapis.com/model-viewer/samples/Box.usdz"
+        src="https://cdn.glitch.com/36cb8393-65c6-408d-a538-055ada20431b/box.glb"
+        ios-src="https://cdn.glitch.com/36cb8393-65c6-408d-a538-055ada20431b/box.usdz"
         camera-controls
         ar
-        ar-modes="webxr scene-viewer quick-look"
+        ar-modes="scene-viewer quick-look webxr"
         ar-scale="fixed"
         auto-rotate
         shadow-intensity="1"
         exposure="0.5"
-        style="background-color: #f0f0f0;">
+        interaction-prompt="none"
+        touch-action="pan-y"
+        style="width: 100%; height: 100%;">
+        <button slot="ar-button" id="ar-button">
+            View in AR
+        </button>
     </model-viewer>
 
     <script>
@@ -127,7 +138,11 @@
 
             setupButtons() {
                 document.getElementById('ar-button').addEventListener('click', () => {
-                    this.modelViewer.activateAR();
+                    if (this.modelViewer.canActivateAR) {
+                        this.modelViewer.activateAR();
+                    } else {
+                        alert('AR is not supported on this device');
+                    }
                 });
 
                 document.getElementById('capture-button').addEventListener('click', () => {
@@ -137,12 +152,14 @@
 
             setupModelViewer() {
                 // Convert dimensions to meters for scaling
-                const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                const width = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                const height = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
                 
                 this.modelViewer.addEventListener('load', () => {
                     document.getElementById('instructions').textContent = 'Click "View in AR" to see in your space';
-                    // Apply scale after model loads
-                    this.modelViewer.scale = `${scale} ${scale} ${scale}`;
+                    // Apply different scales for each dimension
+                    this.modelViewer.scale = `${length} ${height} ${width}`;
                 });
 
                 this.modelViewer.addEventListener('ar-status', (event) => {
@@ -153,6 +170,13 @@
                         document.getElementById('instructions').textContent = 
                             'Move your device to place the box';
                     }
+                });
+
+                // Add error handling
+                this.modelViewer.addEventListener('error', (error) => {
+                    console.error('Error loading model:', error);
+                    document.getElementById('instructions').textContent = 
+                        'Error loading 3D model. Please refresh the page.';
                 });
             }
 
@@ -168,19 +192,24 @@
             }
 
             capturePhoto() {
-                const canvas = this.modelViewer.shadowRoot.querySelector('canvas');
-                if (canvas) {
-                    const link = document.createElement('a');
-                    link.download = 'ar-box-photo.png';
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                } else {
-                    alert('Unable to capture photo at this time');
+                try {
+                    const canvas = this.modelViewer.shadowRoot.querySelector('canvas');
+                    if (canvas) {
+                        const link = document.createElement('a');
+                        link.download = 'ar-box-photo.png';
+                        link.href = canvas.toDataURL('image/png');
+                        link.click();
+                    } else {
+                        alert('Unable to capture photo at this time');
+                    }
+                } catch (error) {
+                    console.error('Error capturing photo:', error);
+                    alert('Failed to capture photo');
                 }
             }
         }
 
-        // Start the application when the page loads
+        // Start the application when the page is fully loaded
         window.addEventListener('load', () => {
             new ARBoxViewer();
         });
