@@ -3,8 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AR Box Viewer</title>
-    <!-- Import model-viewer component -->
+    <title>AR Shape Viewer</title>
     <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
     <style>
         body { 
@@ -69,18 +68,52 @@
             border-radius: 4px;
             z-index: 100;
         }
+        #shape-selector {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+        .shape-button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .shape-button.active {
+            background: #0056b3;
+        }
+        .shape-button:hover {
+            background: #0056b3;
+        }
     </style>
 </head>
 <body>
-    <div id="instructions">Loading 3D box...</div>
+    <div id="instructions">Loading 3D shape...</div>
     <div id="dimensions"></div>
+    
+    <div id="shape-selector">
+        <button class="shape-button active" data-shape="box">Box</button>
+        <button class="shape-button" data-shape="sphere">Sphere</button>
+        <button class="shape-button" data-shape="cylinder">Cylinder</button>
+        <button class="shape-button" data-shape="pyramid">Pyramid</button>
+    </div>
+
     <button id="ar-button">View in AR</button>
     <button id="capture-button">Take Photo</button>
     
     <model-viewer
-        id="box-model"
-        src="https://cdn.glitch.com/36cb8393-65c6-408d-a538-055ada20431b/Astronaut.glb?1542147958948"
-        ios-src="https://cdn.glitch.com/36cb8393-65c6-408d-a538-055ada20431b/Astronaut.usdz?v=1542147958948"
+        id="shape-model"
         camera-controls
         ar
         ar-modes="webxr scene-viewer quick-look"
@@ -92,13 +125,14 @@
     </model-viewer>
 
     <script>
-        class ARBoxViewer {
+        class ARShapeViewer {
             constructor() {
-                this.modelViewer = document.querySelector('#box-model');
+                this.modelViewer = document.querySelector('#shape-model');
                 this.dimensions = this.getDimensionsFromURL();
                 this.displayDimensions();
                 this.setupButtons();
-                this.loadBox();
+                this.setupShapeSelector();
+                this.loadShape('box'); // Default shape
             }
 
             getDimensionsFromURL() {
@@ -135,7 +169,7 @@
                             'AR mode failed to start. Please check if your device supports AR.';
                     } else if (event.detail.status === 'success') {
                         document.getElementById('instructions').textContent = 
-                            'Move your device to place the box';
+                            'Move your device to place the shape';
                     }
                 });
 
@@ -145,13 +179,54 @@
                 });
             }
 
-            loadBox() {
-                // Use a basic cube GLB model
-                this.modelViewer.src = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf';
-                
-                // Scale the model according to dimensions
+            setupShapeSelector() {
+                const shapeButtons = document.querySelectorAll('.shape-button');
+                shapeButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        // Remove active class from all buttons
+                        shapeButtons.forEach(btn => btn.classList.remove('active'));
+                        // Add active class to clicked button
+                        button.classList.add('active');
+                        // Load the selected shape
+                        this.loadShape(button.dataset.shape);
+                    });
+                });
+            }
+
+            loadShape(shapeType) {
                 const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                this.modelViewer.scale = `${scale} ${scale} ${scale}`;
+                
+                // Define paths to different shape models
+                const shapes = {
+                    box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
+                    sphere: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sphere/glTF/Sphere.gltf',
+                    cylinder: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Cylinder/glTF/Cylinder.gltf',
+                    pyramid: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Pyramid/glTF/Pyramid.gltf'
+                };
+
+                // Set the model source
+                this.modelViewer.src = shapes[shapeType] || shapes.box;
+
+                // Adjust scale based on shape type
+                switch(shapeType) {
+                    case 'sphere':
+                        this.modelViewer.scale = `${scale} ${scale} ${scale}`;
+                        break;
+                    case 'cylinder':
+                        const height = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        this.modelViewer.scale = `${scale} ${height} ${scale}`;
+                        break;
+                    case 'pyramid':
+                        const baseScale = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                        const pyramidHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        this.modelViewer.scale = `${baseScale} ${pyramidHeight} ${baseScale}`;
+                        break;
+                    default: // box
+                        const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
+                        const width = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                        const boxHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        this.modelViewer.scale = `${length} ${boxHeight} ${width}`;
+                }
             }
 
             convertToMeters(value, unit) {
@@ -168,14 +243,14 @@
             capturePhoto() {
                 const canvas = this.modelViewer.shadowRoot.querySelector('canvas');
                 const link = document.createElement('a');
-                link.download = 'ar-box-photo.png';
+                link.download = 'ar-shape-photo.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
             }
         }
 
         // Start the application
-        new ARBoxViewer();
+        new ARShapeViewer();
     </script>
 </body>
 </html> 
