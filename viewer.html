@@ -121,7 +121,9 @@
         auto-rotate
         shadow-intensity="1"
         exposure="0.5"
-        style="background-color: #f0f0f0;">
+        style="background-color: #f0f0f0;"
+        ios-src=""
+        ar-status="not-presenting">
     </model-viewer>
 
     <script>
@@ -196,12 +198,12 @@
             loadShape(shapeType) {
                 const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                 
-                // Define paths to different shape models
+                // Updated paths to actual working 3D models
                 const shapes = {
                     box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
-                    sphere: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sphere/glTF/Sphere.gltf',
-                    cylinder: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Cylinder/glTF/Cylinder.gltf',
-                    pyramid: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Pyramid/glTF/Pyramid.gltf'
+                    sphere: 'https://modelviewer.dev/shared-assets/models/sphere.glb',
+                    cylinder: 'https://modelviewer.dev/shared-assets/models/cylinder.glb',
+                    pyramid: 'https://modelviewer.dev/shared-assets/models/pyramid.glb'
                 };
 
                 // Set the model source
@@ -210,23 +212,45 @@
                 // Adjust scale based on shape type
                 switch(shapeType) {
                     case 'sphere':
-                        this.modelViewer.scale = `${scale} ${scale} ${scale}`;
+                        // For sphere, use the smallest dimension to maintain proportions
+                        const sphereScale = Math.min(
+                            this.convertToMeters(this.dimensions.length, this.dimensions.unit),
+                            this.convertToMeters(this.dimensions.width, this.dimensions.unit),
+                            this.convertToMeters(this.dimensions.height, this.dimensions.unit)
+                        );
+                        this.modelViewer.scale = `${sphereScale} ${sphereScale} ${sphereScale}`;
                         break;
+                        
                     case 'cylinder':
-                        const height = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${scale} ${height} ${scale}`;
+                        const radius = Math.min(
+                            this.convertToMeters(this.dimensions.length, this.dimensions.unit),
+                            this.convertToMeters(this.dimensions.width, this.dimensions.unit)
+                        ) / 2;
+                        const cylinderHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
+                        this.modelViewer.scale = `${radius} ${cylinderHeight} ${radius}`;
                         break;
+                        
                     case 'pyramid':
-                        const baseScale = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
+                        const baseSize = Math.max(
+                            this.convertToMeters(this.dimensions.length, this.dimensions.unit),
+                            this.convertToMeters(this.dimensions.width, this.dimensions.unit)
+                        );
                         const pyramidHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${baseScale} ${pyramidHeight} ${baseScale}`;
+                        this.modelViewer.scale = `${baseSize} ${pyramidHeight} ${baseSize}`;
                         break;
+                        
                     default: // box
                         const length = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                         const width = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
                         const boxHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
                         this.modelViewer.scale = `${length} ${boxHeight} ${width}`;
                 }
+
+                // Add loading state handling
+                document.getElementById('instructions').textContent = 'Loading shape...';
+                this.modelViewer.addEventListener('load', () => {
+                    document.getElementById('instructions').textContent = 'Use AR button to view in your space';
+                }, { once: true });
             }
 
             convertToMeters(value, unit) {
