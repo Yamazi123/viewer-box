@@ -198,51 +198,42 @@
             loadShape(shapeType) {
                 const scale = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                 
-                // Updated paths to working 3D models
+                // Updated paths to simple, working 3D models
                 const shapes = {
                     box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
-                    table: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Table/glTF/Table.gltf',
-                    frame: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/PictureFrame/glTF/PictureFrame.gltf',
-                    lamp: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CeilingLight/glTF/CeilingLight.gltf'
+                    table: 'https://cdn.glitch.me/36cb8393-65c6-408d-a538-055ada20431b/ShoppingBag.glb',
+                    frame: 'https://cdn.glitch.me/36cb8393-65c6-408d-a538-055ada20431b/Cube.glb',
+                    lamp: 'https://cdn.glitch.me/36cb8393-65c6-408d-a538-055ada20431b/Cube.glb'
                 };
 
-                // For iOS support
-                const iosSources = {
-                    box: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.usdz',
-                    table: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Table/glTF/Table.usdz',
-                    frame: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/PictureFrame/glTF/PictureFrame.usdz',
-                    lamp: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CeilingLight/glTF/CeilingLight.usdz'
-                };
-
-                // Set the model source and iOS source
+                // Set the model source
                 this.modelViewer.src = shapes[shapeType] || shapes.box;
-                this.modelViewer.iosSrc = iosSources[shapeType] || iosSources.box;
 
-                // Adjust scale based on shape type
+                // Adjust scale and orientation based on shape type
                 switch(shapeType) {
                     case 'table':
+                        // Table dimensions
                         const tableLength = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
                         const tableWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
                         const tableHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${tableLength} ${tableHeight} ${tableWidth}`;
+                        this.modelViewer.scale = `${tableLength} ${tableHeight/4} ${tableWidth}`; // Height divided by 4 for table top
                         break;
                         
                     case 'frame':
+                        // Frame dimensions (thin depth)
                         const frameWidth = this.convertToMeters(this.dimensions.width, this.dimensions.unit);
                         const frameHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        const frameDepth = this.convertToMeters(this.dimensions.length, this.dimensions.unit);
-                        this.modelViewer.scale = `${frameWidth} ${frameHeight} ${frameDepth}`;
-                        // Rotate frame to face forward
-                        this.modelViewer.orientation = "0deg 0deg 0deg";
+                        this.modelViewer.scale = `${frameWidth} ${frameHeight} 0.05`; // 5cm depth
                         break;
                         
                     case 'lamp':
-                        const lampScale = this.convertToMeters(Math.min(
-                            this.dimensions.width,
-                            this.dimensions.length
-                        ), this.dimensions.unit);
+                        // Lamp dimensions (cylindrical shape)
+                        const lampDiameter = Math.min(
+                            this.convertToMeters(this.dimensions.width, this.dimensions.unit),
+                            this.convertToMeters(this.dimensions.length, this.dimensions.unit)
+                        );
                         const lampHeight = this.convertToMeters(this.dimensions.height, this.dimensions.unit);
-                        this.modelViewer.scale = `${lampScale} ${lampHeight} ${lampScale}`;
+                        this.modelViewer.scale = `${lampDiameter} ${lampHeight} ${lampDiameter}`;
                         break;
                         
                     default: // box
@@ -258,13 +249,12 @@
                     document.getElementById('instructions').textContent = 'Use AR button to view in your space';
                 }, { once: true });
 
-                // Add error handling
+                // Add error handling with fallback to box
                 this.modelViewer.addEventListener('error', (error) => {
                     console.error('Error loading model:', error);
                     document.getElementById('instructions').textContent = 
-                        `Error loading ${shapeType}. Falling back to box... (${error.message})`;
+                        `Error loading ${shapeType}. Falling back to box...`;
                     this.modelViewer.src = shapes.box;
-                    this.modelViewer.iosSrc = iosSources.box;
                 }, { once: true });
             }
 
