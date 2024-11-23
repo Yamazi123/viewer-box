@@ -25,12 +25,12 @@
         }
 
         model-viewer {
-            width: 80%;
-            height: 80%;
+            width: 90%;
+            height: 70%;
             background: var(--bg-secondary);
             margin: auto;
             position: absolute;
-            top: 50%;
+            top: 45%;
             left: 50%;
             transform: translate(-50%, -50%);
             border-radius: 16px;
@@ -201,14 +201,20 @@
         }
 
         @media (max-width: 768px) {
+            model-viewer {
+                width: 95%;
+                height: 60%;
+                top: 40%;
+            }
+
             #instructions {
-                top: 90px;
+                top: 10px;
                 font-size: 13px;
                 padding: 10px 16px;
             }
 
             #shape-selector {
-                top: 140px;
+                top: 60px;
                 padding: 6px;
             }
 
@@ -219,32 +225,26 @@
 
             .bottom-controls {
                 flex-direction: column;
-                bottom: 10px;
+                bottom: 20px;
                 gap: 10px;
+                padding: 0 10px;
             }
 
             #ar-button, #capture-button {
-                width: 90%;
+                width: 100%;
                 max-width: none;
                 padding: 12px 20px;
             }
 
             #dimensions {
-                bottom: 140px;
+                bottom: 120px;
                 font-size: 13px;
                 padding: 10px 16px;
-            }
-
-            .header-logo {
-                width: 140px;
-                top: 15px;
             }
         }
     </style>
 </head>
 <body>
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABXEAAAHICAYAAAAIm6mbAAAACXBIWXMAAAsTAAALEwEAmpwYAAAGv2lUWHRYTUw6Y29tLmFkb2JlLnhtcAAAAAAAPD94cGFja2V0IGJlZ2luPSLvu78iIGlkPSJXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQiPz4..." alt="DIMLY Logo" class="header-logo dark">
-    
     <div id="instructions">Loading 3D shape...</div>
     <div id="dimensions"></div>
     
