@@ -172,15 +172,43 @@
             transform: translateY(-1px);
         }
 
+        .header-logo {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: auto;
+            z-index: 101;
+            transition: all 0.3s ease;
+        }
+
+        .header-logo.dark {
+            display: block;
+        }
+
+        .header-logo.light {
+            display: none;
+        }
+
+        @media (prefers-color-scheme: light) {
+            .header-logo.dark {
+                display: none;
+            }
+            .header-logo.light {
+                display: block;
+            }
+        }
+
         @media (max-width: 768px) {
             #instructions {
-                top: 70px;
+                top: 90px;
                 font-size: 13px;
                 padding: 10px 16px;
             }
 
             #shape-selector {
-                top: 120px;
+                top: 140px;
                 padding: 6px;
             }
 
@@ -206,10 +234,18 @@
                 font-size: 13px;
                 padding: 10px 16px;
             }
+
+            .header-logo {
+                width: 140px;
+                top: 15px;
+            }
         }
     </style>
 </head>
 <body>
+    <img src="../Assets/my-logo.png" alt="DIMLY Logo" class="header-logo dark">
+    <img src="../Assets/my-logo2.png" alt="DIMLY Logo" class="header-logo light">
+    
     <div id="instructions">Loading 3D shape...</div>
     <div id="dimensions"></div>
     
